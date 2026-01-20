@@ -1,0 +1,1 @@
+The setting.json as added to that vscode recognizes the scripts inside the function folders, so the weird error when coding doesn't show. Not a huge deal as scripts still ran, but didn't like seeing yellow error line and white methods calls 

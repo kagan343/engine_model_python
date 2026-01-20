@@ -1,0 +1,12 @@
+1-19-2026:
+	- Diffuser section heavily off "https://github.com/flight-test-engineering/Gas-Turbine-Propulsion/blob/main/turbojet/episd_6_combustor.ipynb"
+	- Combustor section made before finding above resource. Just an fyi to self, they assume instantaneous mixing and ignition, mine aims to task into account 
+		mass flows of fuel and air and residence/ mixing time which is why their code is different
+
+	- Converting to python for better cantera documentation
+	- Thus still need to add/ convert compressor and turbine functions
+	- Single flow combustor working, way too high and unrealistic volume (2ft^3 before diffuser) needed for a residence time for ignition/ burn\
+
+	To Do:
+	- re-graph needed volume with single flow function now that diffuser function slows down mass flow into combustion chamber
+	- Working on developing recirculation model and small air flow percentage next to fuel injectors 
