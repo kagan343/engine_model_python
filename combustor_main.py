@@ -2,6 +2,7 @@
 # Combustor main
 from fnc_comb import iterate_diffuser
 from fnc_comb import single_flow_combustion
+from fnc_comb import multi_flow_recirculation_combustion
 
 
 def combustor_main(eng):
@@ -20,6 +21,8 @@ def combustor_main(eng):
     # print(f'gas in temp and pressure = {eng.diff_gas_in.T} and {eng.diff_gas_in.P}')
     # print(f'gas out temp and pressure = {eng.diff_gas_out.T} and {eng.diff_gas_out.P}')
 
+
+
     ## Diffusor section
     # iterate to get diffuser outputs since mass, T, P, cp, cv, etc are implicit
     # current getting good results, velocity down to 25 m/s with +/- 1.9cm to shroud and hub radii
@@ -28,7 +31,8 @@ def combustor_main(eng):
     M_out, converged, diff_gas_out, diff_mdot_out = iterate_diffuser(eng)
 
     if converged:
-        comb_gas_out = single_flow_combustion(eng, diff_gas_out, diff_mdot_out)
+        #comb_gas_out = single_flow_combustion(eng, diff_gas_out, diff_mdot_out)
+        comb_gas_out = multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out)
         print(comb_gas_out.T)
         print(comb_gas_out.P)
 

@@ -18,7 +18,9 @@ class CombustorCfg:
     PR_b: float
     n_b: float
     equivRatio: float  
-    volume_b: float  
+    volume_b: float
+    f_primary: float # Fraction of primary air mass flow in chamber
+    v_frac_primary: float # Fraction of primary air volume of total chamber volume
 
 # temporary - value from matlab of compressor outlet
 class Engine():
@@ -62,6 +64,8 @@ if __name__ == "__main__":
         n_b=0.98,
         equivRatio=0.3,
         volume_b=1, # test for code, 1m^3 gets ignition
+        f_primary=0.99,
+        v_frac_primary=0.99
     )
 
     eng1 = Engine(T_t3=345.68, P_t3=130640, m_dot_air=1.388, diffuser=diffuser1, combustor=combustor1)

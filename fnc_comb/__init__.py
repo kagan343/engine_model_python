@@ -8,3 +8,4 @@
 
 from .iterate_diffuser import iterate_diffuser
 from .single_flow_combustion import single_flow_combustion
+from .multi_flow_recirculation_combustion import multi_flow_recirculation_combustion
