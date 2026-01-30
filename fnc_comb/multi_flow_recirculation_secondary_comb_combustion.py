@@ -3,35 +3,29 @@ import cantera as ct
 import numpy as np
 from .help_fnc import *
 
-def multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out):
+def multi_flow_recirculation_secondary_comb_combustion(eng, diff_gas_out, diff_mdot_out):
 
     # Set variables
     T_t3 = diff_gas_out.T
     P_t3 = diff_gas_out.P
-    print(T_t3)
-    print(P_t3)
     volume_b = eng.combustor.volume_b
     f_primary = eng.combustor.f_primary
     v_frac_primary = eng.combustor.v_frac_primary
-    m_dot_air_total = diff_mdot_out
+
 
     # Calcuate P_t4 using estimated combustor pressure ratio
     P_t4 = P_t3 * eng.combustor.PR_b
+    
+    # Total mass flows
+    m_dot_air_total = diff_mdot_out
+    m_dot_fuel = calc_fuel_mdot(m_dot_air_total, eng.combustor.equivRatio)
+    # print(f"eng.combustor.equivRatio = {eng.combustor.equivRatio}")
 
     # Split air, fraction can be dictated by geometry of chamber
-    """
-    fnc uses secondary air as cooling air, so set m_dot_fuel using primary air fraction
-    """
     m_dot_air_primary = f_primary * m_dot_air_total
-    m_dot_fuel = calc_fuel_mdot(m_dot_air_primary, eng.combustor.primary_equivRatio)
-    # print(m_dot_fuel)
-    # print(m_dot_air_total)
     m_dot_air_secondary = (1-f_primary) * m_dot_air_total
 
     # Split volume
-    """
-    See sketch diagram, mass flow set by initial split of air, volume then set by following geom.
-    """
     v_primary = v_frac_primary * volume_b
     v_secondary = (1-v_frac_primary) * volume_b
 
@@ -41,8 +35,7 @@ def multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out):
     mech = "gri30.yaml"
     gas_air  = ct.Solution(mech)
     gas_fuel = ct.Solution(mech)
-    gas_init_primary = ct.Solution(mech)  # separate object for the reactor initial state
-    gas_init_secondary = ct.Solution(mech)
+    gas_init = ct.Solution(mech)  # separate object for the reactor initial state
 
     # Compositions
     air_X  = "O2:0.21, N2:0.79" # air same comp always for this model
@@ -51,44 +44,19 @@ def multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out):
     # Set inlet states
     gas_air.TPX  = T_t3, P_t4, air_X
     gas_fuel.TPX = T_t3, P_t4, fuel_X
-    gas_init_secondary.TPX = T_t3, P_t4, air_X
-    # """
-    # Setting temp 1200 to help solver converge, set equivalent ratio as 
-    # """
-    # gas_init_primary.TP = 1200.0, P_t4
-    # gas_init_primary.set_equivalence_ratio(eng.combustor.primary_equivRatio, fuel=fuel_X, oxidizer=air_X)
 
-
-    """
-    Seeding small fraction of hot equilibrium products into primary reactor to model spark
-    https://groups.google.com/g/cantera-users/c/x03SbuksnCI?utm_source=chatgpt.com
-    https://cantera.org/stable/examples/python/reactors/fuel_injection.html
-    """
-    # Initial conditions reactant (at diffuser outlet values)
-    gas_react = ct.Solution(mech)
-    gas_react.TP = T_t3, P_t4
-    gas_react.set_equivalence_ratio(eng.combustor.primary_equivRatio, fuel=fuel_X, oxidizer=air_X)
-    # Seed reactant (equlibriated/ hot)
-    gas_prod = ct.Solution(mech)
-    gas_prod.TP = 2000, P_t4
-    gas_prod.set_equivalence_ratio(eng.combustor.primary_equivRatio, fuel=fuel_X, oxidizer=air_X)
-    gas_prod.equilibrate('HP')
-    # Mix small amount of prod into react
-    perc_seed = 0.1
-    Y_seed = (1 - perc_seed) * gas_react.Y + perc_seed * gas_prod.Y
-    # Initialize primary reactor
-    gas_init_primary.TPY = 1200, P_t4, Y_seed
-
+    gas_init.TP = 1200.0, P_t4 # 1200 guess to help solver converge
+    gas_init.set_equivalence_ratio(eng.combustor.equivRatio, fuel=fuel_X, oxidizer=air_X)
 
     # Reservoirs
     upstream_air = ct.Reservoir(gas_air)
     upstream_fuel = ct.Reservoir(gas_fuel)
-    downstream = ct.Reservoir(gas_init_secondary) # "sink" reservoir; state doesn't feed back, can just use init secondary object
+    downstream = ct.Reservoir(gas_init) # "sink" reservoir; state doesn't feed back, can just use init object
 
 
 
     ##### Primary reactor #####
-    r1 = ct.IdealGasReactor(gas_init_primary) # initialized with gas_init
+    r1 = ct.IdealGasReactor(gas_init) # initialized with gas_init
     r1.volume = v_primary
     r1.energy_enabled = True # ensure energy is on
 
@@ -100,7 +68,7 @@ def multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out):
 
 
     ##### Secondary reactor (cooling secondary air) #####
-    r2 = ct.IdealGasReactor(gas_init_secondary) # initialized with gas_init
+    r2 = ct.IdealGasReactor(gas_init) # initialized with gas_init
     r2.volume = v_secondary
     r2.energy_enabled = True # ensure energy is on
     r2.chemistry_enabled = False # used to cool air, representing dilution/mixing without resolved/full chemistry
@@ -146,9 +114,11 @@ def multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out):
     primary_gas_out.TPY = r1.T, r1.thermo.P, r1.thermo.Y
     secondary_gas_out = ct.Solution(mech)
     secondary_gas_out.TPY = r2.T, r2.thermo.P, r2.thermo.Y
+    print(f"valve m_dot = {v.mass_flow_rate}")
+    print(f"expected m_dot = {m_dot_air_primary+m_dot_fuel+m_dot_air_secondary}")
 
-    ### Total pressures and temps
-    v_in = (m_dot_air_primary+m_dot_fuel) / (primary_gas_out.density * eng.diffuser.A_diff_out * v_frac_primary)
+
+    v_in = (m_dot_air_primary+m_dot_fuel) / (primary_gas_out.density * eng.diffuser.A_diff_out)
     M_in = v_in / get_a(primary_gas_out)
     gamma_in = get_gamma(primary_gas_out)
     T_0in = get_T(primary_gas_out.T, gamma_in, M_in)
@@ -162,9 +132,6 @@ def multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out):
     P_0in = get_P(secondary_gas_out.P, gamma_in, M_in)
     print(f"secondary totals: {T_0in} and {P_0in}")
 
-
-    # print(f"valve m_dot = {v.mass_flow_rate}")
-    # print(f"expected m_dot = {m_dot_air_primary+m_dot_fuel+m_dot_air_secondary}")
 
     # X = gas_out.X              # mole fractions (numpy array)
 

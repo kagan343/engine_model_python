@@ -3,6 +3,7 @@
 from fnc_comb import iterate_diffuser
 from fnc_comb import single_flow_combustion
 from fnc_comb import multi_flow_recirculation_combustion
+from fnc_comb import multi_flow_recirculation_secondary_comb_combustion
 
 
 def combustor_main(eng):
@@ -32,9 +33,10 @@ def combustor_main(eng):
 
     if converged:
         #comb_gas_out = single_flow_combustion(eng, diff_gas_out, diff_mdot_out)
-        comb_gas_out = multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out)
-        print(comb_gas_out.T)
-        print(comb_gas_out.P)
+        comb_primary_gas_out, comb_secondary_gas_out = multi_flow_recirculation_combustion(eng, diff_gas_out, diff_mdot_out)
+        
+        # print(comb_gas_out.T)
+        # print(comb_gas_out.P)
 
-    return comb_gas_out # change
+    return comb_primary_gas_out, comb_secondary_gas_out # change
 

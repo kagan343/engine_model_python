@@ -29,10 +29,10 @@ def iterate_diffuser(eng):
     P_0in = get_P(gas_in.P, gamma_in, M_in)
 
     #print(f'T_0in_init = {T_0in}')
-    print(f'v_in_init = {v_in}')
-    #print(f'M_in_init = {M_in}')
-    print(f'stagnation pressure P_0in = {P_0in}')
-    print(f'static pressure P_in = {gas_in.P}')
+    # print(f'v_in_init = {v_in}')
+    # #print(f'M_in_init = {M_in}')
+    # print(f'stagnation pressure P_0in = {P_0in}')
+    # print(f'static pressure P_in = {gas_in.P}')
 
     # Set initial guesses using wanted outlet area
     T_0out = T_0in # 0 = stagnation/ total
@@ -59,13 +59,13 @@ def iterate_diffuser(eng):
         v_out_guess = m_dot / (gas_out.density * A_out)
 
         if abs(v_out - v_out_guess) < tol:# and n_iter > 20:
-            print(f"Diffuser exit velocity converged, niter={n_iter}")
+            # print(f"Diffuser exit velocity converged, niter={n_iter}")
             converged = True
             M_out = v_out_guess / get_a(gas_out) # Set mach using last iteration values
             m_dot_out = v_out_guess * (gas_out.density * A_out) # Check for same value
-            print(f"v_out = {v_out}")
-            print(f"m_dot_out = {m_dot_out}")
-            print(f"stangation P_0out = {P_0out}, static P_out = {P_out}")
+            # print(f"v_out = {v_out}")
+            # print(f"m_dot_out = {m_dot_out}")
+            # print(f"stangation P_0out = {P_0out}, static P_out = {P_out}")
         elif n_iter < max_iter:
             n_iter += 1
         else:
